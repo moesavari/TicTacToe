@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MainGame : MonoSingleton<MainGame>
 {
@@ -13,13 +15,22 @@ public class MainGame : MonoSingleton<MainGame>
     [SerializeField] private Material _xMat;
     [SerializeField] private Material _oMat;
     [SerializeField] private List<SpawnerElement> _spawners;
+
     [SerializeField] private bool _isSinglePlayer = true;
     [SerializeField] private AIDifficulty _aIDifficulty = AIDifficulty.Easy;
+
+    [SerializeField] private GameObject _gamePanel;
+    [SerializeField] private TextMeshProUGUI _winnerText;
+    [SerializeField] private Button _playAgainButton;
+    [SerializeField] private Button _returnButton;
 
     private static int TOTALTURNS = 9;
 
     private int _turn = 0;
     private int _turnsLeft = TOTALTURNS;
+
+    private bool _gameOver = false;
+    private bool _winnerDeclared = false;
 
     private int[][] winningCombinations = new int[][]
     {
@@ -42,6 +53,9 @@ public class MainGame : MonoSingleton<MainGame>
 
         if (Input.GetMouseButtonDown(0))
         {
+            if (_gameOver)
+                return;
+
             RaycastHit hit;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out hit))
@@ -58,7 +72,9 @@ public class MainGame : MonoSingleton<MainGame>
                         {
                             if (CheckWin(_turn == 0 ? "X" : "O"))
                             {
+                                ShowEndScreen("Player " + (_turn == 0 ? "X" : "O") + " wins!");
                                 Debug.Log("Player " + (_turn == 0 ? "X" : "O") + " wins!");
+                                _winnerDeclared = true;
                                 return;
                             }
                         }
@@ -69,6 +85,12 @@ public class MainGame : MonoSingleton<MainGame>
                         if (_isSinglePlayer && _turn == 1)
                         {
                             AIMakeMove();
+                        }
+
+                        if (_turnsLeft == 0 && !_winnerDeclared)
+                        {
+                            ShowEndScreen("It's a draw!");
+                            Debug.Log("Draw");
                         }
                     }
                 }
@@ -139,6 +161,7 @@ public class MainGame : MonoSingleton<MainGame>
 
             if (CheckWin("O"))
             {
+                ShowEndScreen("AI Wins!");
                 Debug.Log("AI wins!");
                 return;
             }
@@ -162,6 +185,7 @@ public class MainGame : MonoSingleton<MainGame>
                 _spawners[i].OccupySpawner(_oMat, "O");
                 if (CheckWin("O"))
                 {
+                    ShowEndScreen("AI Wins!");
                     Debug.Log("AI wins!");
                     return;
                 }
@@ -211,6 +235,7 @@ public class MainGame : MonoSingleton<MainGame>
 
             if (CheckWin("O"))
             {
+                ShowEndScreen("AI Wins!");
                 Debug.Log("AI wins!");
                 return;
             }
@@ -268,13 +293,38 @@ public class MainGame : MonoSingleton<MainGame>
         }
     }
 
+    public void ShowEndScreen(string text)
+    {
+        _gameOver = true;
+
+        _winnerText.text = text;
+        _gamePanel.SetActive(true);
+
+        _playAgainButton.onClick.AddListener(ResetGame);
+        _returnButton.onClick.AddListener(ReturnToMenu);
+    }
+
+    public void ReturnToMenu()
+    {
+        ResetGame();
+        MainMenu.Instance.GoToMenu();
+    }
+
     public void ResetGame()
     {
+        _playAgainButton.onClick.RemoveAllListeners();
+        _returnButton.onClick.RemoveAllListeners();
+
+        _gamePanel.SetActive(false);
+
         for (int i = 0; i < _spawners.Count; i++)
         {
             _spawners[i].ResetSpawner();
         }
         _turnsLeft = TOTALTURNS;
         _turn = 0;
+
+        _gameOver = false;
+        _winnerDeclared = false;
     }
 }

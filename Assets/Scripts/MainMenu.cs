@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class MainMenu : MonoBehaviour
+public class MainMenu : MonoSingleton<MainMenu>
 {
     [Header("Panel Objects")]
     [SerializeField] private GameObject _welcomePanel;
@@ -22,7 +22,7 @@ public class MainMenu : MonoBehaviour
 
     private MainGame _mainGame;
 
-    private void OnEnable()
+    private void Start()
     {
         _mainGame = MainGame.Instance;
 
@@ -33,29 +33,14 @@ public class MainMenu : MonoBehaviour
         _normalButton.onClick.AddListener(SetDifficultyToNormal);
         _hardButton.onClick.AddListener(SetDifficultyToHard);
 
-        _welcomePanel.SetActive(true);
-        _mainPanel.SetActive(true);
-
-        _difficultyPanel.SetActive(false);
-        _gameEngine.SetActive(false);
-    }
-
-    private void OnDisable()
-    {
-        _vsAIButton.onClick.RemoveAllListeners();
-        _vsPlayerButton.onClick.RemoveAllListeners();
-
-        _easyButton.onClick.RemoveAllListeners();
-        _normalButton.onClick.RemoveAllListeners();
-        _hardButton.onClick.RemoveAllListeners();
+        GoToMenu();
     }
 
     private void PlayVSPlayer()
     {
         _mainGame.SetTwoPlayerMode();
 
-        _welcomePanel.SetActive(false);
-        _gameEngine.SetActive(true);
+        GoToGame();
     }
 
     private void PlayVSAI()
@@ -68,8 +53,7 @@ public class MainMenu : MonoBehaviour
     {
         _mainGame.SetDifficulty(difficulty);
 
-        _welcomePanel.SetActive(false);
-        _gameEngine.SetActive(true);
+        GoToGame();
     }
 
     public void SetDifficultyToEasy()
@@ -85,5 +69,20 @@ public class MainMenu : MonoBehaviour
     public void SetDifficultyToHard()
     {
         SetDifficulty(MainGame.AIDifficulty.Hard);
+    }
+
+    public void GoToGame()
+    {
+        _welcomePanel.SetActive(false);
+        _gameEngine.SetActive(true);
+    }
+
+    public void GoToMenu()
+    {
+        _welcomePanel.SetActive(true);
+        _mainPanel.SetActive(true);
+
+        _difficultyPanel.SetActive(false);
+        _gameEngine.SetActive(false);
     }
 }
