@@ -3,16 +3,24 @@ using UnityEngine;
 
 public class MainGame : MonoBehaviour
 {
+    public enum AIDifficulty
+    {
+        Easy,
+        Normal,
+        Hard
+    }
+
     [SerializeField] private Material _xMat;
     [SerializeField] private Material _oMat;
-
     [SerializeField] private List<SpawnerElement> _spawners;
+    [SerializeField] private bool _isSinglePlayer = true;
+    [SerializeField] private AIDifficulty _aiDifficulty = AIDifficulty.Easy;
+
+    private static int TOTALTURNS = 9;
 
     private int _turn = 0;
-    private int _maxTurns = 9;
-    private bool _isSinglePlayer = true;
+    private int _turnsLeft = TOTALTURNS;
 
-    // Put all winning combinations into one variable for ease of access and readability
     private int[][] winningCombinations = new int[][]
     {
         new int[] {0, 1, 2}, // Row 1
@@ -40,14 +48,13 @@ public class MainGame : MonoBehaviour
             {
                 if (hit.collider.tag == "Spawner")
                 {
-                    Debug.Log(hit.collider.gameObject.name);
                     SpawnerElement spawner = hit.collider.GetComponent<SpawnerElement>();
 
                     if (!spawner.IsOccupied)
                     {
                         spawner.OccupySpawner(_turn == 0 ? _xMat : _oMat, _turn == 0 ? "X" : "O");
 
-                        if(_maxTurns <= 5)
+                        if (_turnsLeft <= 5)
                         {
                             if (CheckWin(_turn == 0 ? "X" : "O"))
                             {
@@ -57,7 +64,7 @@ public class MainGame : MonoBehaviour
                         }
 
                         _turn = _turn == 0 ? 1 : 0;
-                        _maxTurns--;
+                        _turnsLeft--;
 
                         if (_isSinglePlayer && _turn == 1)
                         {
@@ -77,13 +84,96 @@ public class MainGame : MonoBehaviour
                 _spawners[combination[1]].CheckIcon(icon) &&
                 _spawners[combination[2]].CheckIcon(icon))
             {
-                return true; // Exit once a winner is found
+                return true;
             }
         }
         return false;
     }
 
     private void AIMakeMove()
+    {
+        if (_aiDifficulty == AIDifficulty.Easy)
+        {
+            AIMakeEasyMove();
+        }
+        else if (_aiDifficulty == AIDifficulty.Normal)
+        {
+            AIMakeNormalMove();
+        }
+        else if (_aiDifficulty == AIDifficulty.Hard)
+        {
+            AIMakeHardMove();
+        }
+    }
+
+    /// <summary>
+    /// Easy mode makes the AI place an icon randomly where it can
+    /// </summary>
+    private void AIMakeEasyMove()
+    {
+        // Random move
+        List<int> availableMoves = new List<int>();
+        for (int i = 0; i < _spawners.Count; i++)
+        {
+            if (!_spawners[i].IsOccupied)
+            {
+                availableMoves.Add(i);
+            }
+        }
+
+        if (availableMoves.Count > 0)
+        {
+            int moveIndex = availableMoves[Random.Range(0, availableMoves.Count)];
+            _spawners[moveIndex].OccupySpawner(_oMat, "O");
+
+            if (CheckWin("O"))
+            {
+                Debug.Log("AI wins!");
+                return;
+            }
+
+            _turn = 0;
+            _turnsLeft--;
+        }
+    }
+
+    /// <summary>
+    /// Normal mode looks for the player's current positions and checks to see if there is a winning move
+    /// If a winning move is found, it will add its icon on that slot
+    /// If not, it will put the icon in a random location
+    /// </summary>
+    private void AIMakeNormalMove()
+    {
+        for (int i = 0; i < _spawners.Count; i++)
+        {
+            if (!_spawners[i].IsOccupied)
+            {
+                _spawners[i].OccupySpawner(_oMat, "O");
+                if (CheckWin("O"))
+                {
+                    Debug.Log("AI wins!");
+                    return;
+                }
+                _spawners[i].ResetSpawner();
+
+                _spawners[i].OccupySpawner(_xMat, "X");
+                if (CheckWin("X"))
+                {
+                    _spawners[i].OccupySpawner(_oMat, "O");
+                    _turn = 0;
+                    _turnsLeft--;
+                    return;
+                }
+                _spawners[i].ResetSpawner();
+            }
+        }
+        AIMakeEasyMove();
+    }
+
+    /// <summary>
+    /// Hard mode makes the AI use Minimax algorithm to determine the best route
+    /// </summary> 
+    private void AIMakeHardMove()
     {
         int bestScore = int.MinValue;
         int moveIndex = -1;
@@ -114,16 +204,24 @@ public class MainGame : MonoBehaviour
                 return;
             }
 
-            _turn = 0; // Switch back to the player's turn
-            _maxTurns--;
+            _turn = 0;
+            _turnsLeft--;
         }
     }
 
+    /// <summary>
+    /// Minimax algorithm is a decision rule used in AI to help minimize the possible loss for a worst case scenario
+    /// It helps going into the board and finding the best case scenario for the AI to use in order to not lose as hard
+    /// </summary>
+    /// <param name="board"></param>
+    /// <param name="depth"></param>
+    /// <param name="isMaximizing"></param>
+    /// <returns></returns>
     private int Minimax(List<SpawnerElement> board, int depth, bool isMaximizing)
     {
         if (CheckWin("O")) return 1;
         if (CheckWin("X")) return -1;
-        if (_maxTurns == 0) return 0;
+        if (_turnsLeft == 0) return 0;
 
         if (isMaximizing)
         {
@@ -162,9 +260,10 @@ public class MainGame : MonoBehaviour
     public void ResetGame()
     {
         for (int i = 0; i < _spawners.Count; i++)
+        {
             _spawners[i].ResetSpawner();
-
-        _maxTurns = 9;
+        }
+        _turnsLeft = TOTALTURNS;
         _turn = 0;
     }
 }
