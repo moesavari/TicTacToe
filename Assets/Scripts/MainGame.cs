@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MainGame : MonoBehaviour
+public class MainGame : MonoSingleton<MainGame>
 {
     public enum AIDifficulty
     {
@@ -14,7 +14,7 @@ public class MainGame : MonoBehaviour
     [SerializeField] private Material _oMat;
     [SerializeField] private List<SpawnerElement> _spawners;
     [SerializeField] private bool _isSinglePlayer = true;
-    [SerializeField] private AIDifficulty _aiDifficulty = AIDifficulty.Easy;
+    [SerializeField] private AIDifficulty _aIDifficulty = AIDifficulty.Easy;
 
     private static int TOTALTURNS = 9;
 
@@ -90,17 +90,28 @@ public class MainGame : MonoBehaviour
         return false;
     }
 
+    public void SetTwoPlayerMode()
+    {
+        _isSinglePlayer = false;
+    }
+
+    public void SetDifficulty(AIDifficulty difficulty)
+    {
+        _aIDifficulty = difficulty;
+        _isSinglePlayer = true;
+    }
+
     private void AIMakeMove()
     {
-        if (_aiDifficulty == AIDifficulty.Easy)
+        if (_aIDifficulty == AIDifficulty.Easy)
         {
             AIMakeEasyMove();
         }
-        else if (_aiDifficulty == AIDifficulty.Normal)
+        else if (_aIDifficulty == AIDifficulty.Normal)
         {
             AIMakeNormalMove();
         }
-        else if (_aiDifficulty == AIDifficulty.Hard)
+        else if (_aIDifficulty == AIDifficulty.Hard)
         {
             AIMakeHardMove();
         }
